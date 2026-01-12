@@ -1,17 +1,19 @@
 package tensor
 
-const (
-	ADD = "+"
-	SUB = "-"
-	MUL = "*"
-	DIV = "/"
+import (
+	"math"
+	c "github.com/Mehul-Kumar-27/go-neural/constants"
 )
+
+
+
+
 
 func ValidateShape(op string, a ...Tensor) error {
 	switch op {
-	case ADD:
+	case c.ADD:
 		return ValidateShapeForAdd(a...)
-	case MUL:
+	case c.MUL:
 		return ValidateShapeForMul(a...)
 	default:
 		return ErrInvalidOp
@@ -58,7 +60,7 @@ func addMany(a ...Tensor) (*Tensor, error) {
 	if len(a) == 0 {
 		return nil, nil
 	}
-	if err := ValidateShape(ADD, a...); err != nil {
+	if err := ValidateShape(c.ADD, a...); err != nil {
 		return nil, err
 	}
 
@@ -84,17 +86,18 @@ func addMany(a ...Tensor) (*Tensor, error) {
 
 func Add(a, b Tensor) (*Tensor, error) {
 	row, col := a.Shape()
-	result := NewTensorWithShape(row, col, &a, &b, ADD)
+	result := NewTensorWithShape(row, col, &a, &b, c.ADD)
 
 	for row := range result.Data {
 		for col := range result.Data[row] {
 			result.Data[row][col] = a.Data[row][col] + b.Data[row][col]
 			result.LeftChild = &a
 			result.RightChild = &b
+			result.Op = c.ADD
 		}
 	}
 
-	return &result, nil
+	return result, nil
 }
 
 func mulMany(a ...Tensor) (*Tensor, error) {
@@ -102,7 +105,7 @@ func mulMany(a ...Tensor) (*Tensor, error) {
 		return nil, nil
 	}
 
-	if err := ValidateShape(MUL, a...); err != nil {
+	if err := ValidateShape(c.MUL, a...); err != nil {
 		return nil, err
 	}
 
@@ -122,16 +125,38 @@ func mulMany(a ...Tensor) (*Tensor, error) {
 func Mul(a, b Tensor) (*Tensor, error) {
 	ra, ca := a.Shape()
 	_, cb := b.Shape()
-	result := NewTensorWithShape(ra, cb, &a, &b, MUL)
+	result := NewTensorWithShape(ra, cb, &a, &b, c.MUL)
 
 	for row := range result.Data {
 		for col := range result.Data[row] {
 			result.Data[row][col] = 0
 			for k := 0; k < ca; k++ {
 				result.Data[row][col] += a.Data[row][k] * b.Data[k][col]
+				result.LeftChild = &a
+				result.RightChild = &b
+				result.Op = c.MUL
 			}
 		}
 	}
 
-	return &result, nil
+	return result, nil
+}
+
+func tanh(a ...Tensor) (*Tensor, error) {
+	if len(a) > 1{
+		return nil, ErrInvalidOp
+	}
+
+	row, col := a[0].Shape()
+	result := NewTensorWithShape(row, col, &a[0], nil, c.TANH)
+
+	for row := range result.Data {
+		for col := range result.Data[row] {
+			result.Data[row][col] = math.Tanh(a[0].Data[row][col])
+		}
+	}
+	result.LeftChild = &a[0]
+	result.Op = c.TANH
+
+	return result, nil
 }
